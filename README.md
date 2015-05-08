@@ -1,4 +1,4 @@
-# BikeSharingDemand
+# Bike Sharing Demand
 Kaggle competition for forecast use of a city bikeshare system
 
 Take a look at the competition: https://www.kaggle.com/c/bike-sharing-demand
