@@ -79,7 +79,7 @@ print(gg2)
 
 ## clustering using Hierarchical Clustering
 # use a subset of the data for plotting clarity
-set.seed(1)
+set.seed(35)
 subs1 <- train %>% sample_n(1000) %>%
     select(timeofday, atemp, weather, dayofweek, season, humidity, windspeed, count)
 #subs1 <- data.frame(lapply(subs1, unclass), as.is=TRUE)
@@ -89,5 +89,13 @@ gg3 <- ggdendrogram(hClustering) + geom_line(aes(x=0:1, y=c(300,300)))
 windows()
 print(gg3)
 # TODO: find way to interpret this dendrogram. 
+
+## atemp vs. temperature, rentals
+gg4 <- ggplot(train, aes(temp, atemp, color=humidity, size=windspeed)) +
+    geom_point() +
+    scale_colour_gradient(low="blue",high="red")
+windows()
+print(gg4)
+ggsave("atemp_temp_windspeed_humidity.png")
 
 ## Principle component analysis (PCA)
