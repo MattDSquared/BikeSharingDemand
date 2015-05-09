@@ -58,7 +58,7 @@ test$weather[test$weather == "heavy weather"] = "light weather"
 
 ## ======================== Exploratory analysis ========================
 graphics.off()
-windows(width = 12, height = 8, xpinch=96, ypinch=96, xpos=0, ypos=0)
+windows.options(width = 12, height = 8, xpinch=96, ypinch=96, xpos=0, ypos=0)
 
 ## time of day, temperature, weather label
 gg1 <- ggplot(train, aes(timeofday, count, color=atemp)) +
@@ -66,12 +66,15 @@ gg1 <- ggplot(train, aes(timeofday, count, color=atemp)) +
     geom_point() +
     geom_smooth() +
     scale_colour_gradientn("Temp (°F)", colours=c("#5e4fa2", "#3288bd", "#66c2a5", "#abdda4", "#e6f598", "#fee08b", "#fdae61", "#f46d43", "#d53e4f", "#9e0142"))
+windows()
 print(gg1)
+ggsave("time_tempurature_weather_workingday.png")
 
 ## day of week, temperature, weather label
 gg2 <- ggplot(train, aes(dayofweek, log(count,10))) +
     facet_grid(. ~ weather) +
     geom_boxplot()
+windows()
 print(gg2)
 
 ## clustering using Hierarchical Clustering
@@ -83,7 +86,7 @@ subs1 <- train %>% sample_n(1000) %>%
 hClustering <- hclust(dist(subs1))
 
 gg3 <- ggdendrogram(hClustering) + geom_line(aes(x=0:1, y=c(300,300)))
-
+windows()
 print(gg3)
 # TODO: find way to interpret this dendrogram. 
 
