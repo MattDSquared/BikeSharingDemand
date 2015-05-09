@@ -97,5 +97,3 @@ gg4 <- ggplot(train, aes(temp, atemp, color=humidity, size=windspeed)) +
 windows()
 print(gg4)
 ggsave("atemp_temp_windspeed_humidity.png")
-
-## Principle component analysis (PCA)
