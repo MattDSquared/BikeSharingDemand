@@ -88,7 +88,9 @@ hClustering <- hclust(dist(subs1))
 gg3 <- ggdendrogram(hClustering) + geom_line(aes(x=0:1, y=c(300,300)))
 windows()
 print(gg3)
-# TODO: find way to interpret this dendrogram. 
+# has 2 major clusters, with 4 subclusters, one of which is very small,
+# but still very distinct
+# TODO: anything more to interpret from this dendrogram? 
 
 ## atemp vs. temperature, rentals
 gg4 <- ggplot(train, aes(temp, atemp, color=humidity, size=windspeed)) +
