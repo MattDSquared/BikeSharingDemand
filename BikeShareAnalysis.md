@@ -107,7 +107,7 @@ train <- mutate(train,
 #   TODO: fill out test data later once have solid train dataset
 ```
 
-Data only shows a single heavy weather point. In the midst of several light weather points. Is this data set valuable for the DC area? This should be explored further. For graphing purposes, replace with light weather. Implicit assumption: bike rentals during heavy weather will be negligeable. 
+Data only shows a single heavy weather point. In the midst of several light weather points. For graphing purposes, replace with light weather. Implicit assumption: bike rentals during heavy weather will be negligeable. 
 
 
 ```r
@@ -152,6 +152,8 @@ train$weather[train$weather == "heavy weather"] = "light weather"
 test$weather[test$weather == "heavy weather"] = "light weather"
 ```
 
+This should be explored further. Is this data set applicable to the DC area, since it essentially doesn't include heavy weather data which does occur in the DC area. 
+
 ## What is atemp?
 
 The atemp variable in the data set is the "feels like" temperature based on weather factors. The plot below illustrates this relationship.
@@ -171,7 +173,9 @@ print(gg)
 
 ![](BikeShareAnalysis_files/figure-html/atemp.plot-1.png) 
 
-This shows the effects of windchill below about 15°C and humidity above about 24°C. Note the outliers to the lower right of the main grouping. These 24 data all occur on a single day in august.
+This shows the effects of windchill below about 15°C and humidity above about 24°C. Note the data contains few points below 5°C, which could be an issue for the DC area. 
+
+Also note the outliers to the lower right of the main grouping. These 24 data all occur on a single day in august.
 Note the fixed atemp value of 12.12. For simplicity, assume for these values atemp = temp.
 
 
@@ -213,11 +217,13 @@ train <- mutate(train, atemp=ifelse((atemp < 15) & (temp > 24), temp, atemp))
 test <- mutate(test, atemp=ifelse((atemp < 15) & (temp > 24), temp, atemp))
 ```
 
-For a first-pass solution, it would appear the wind and humidity are already packaged into the 'feels like' tempurature value. The following analysis neglects temp, wind, and humidity in favor of using atemp. This leaves the weather label, time (hour of the day, day of the week), and holiday label. 
+It appears wind and humidity are already packaged into the 'feels like' tempurature value. The following analysis neglects temp, wind, and humidity in favor of using atemp. This leaves the weather label, time (hour of the day, day of the week), and holiday label. 
 
-## Effect of Time of day, weather, and working/non-working days
+## Primary demand drivers
 
-The initial idea for this plot came from [this kaggle script post](https://www.kaggle.com/users/993/ben-hamner/bike-sharing-demand/bike-rentals-by-time-and-temperature) by Ben Hamner. 
+### Effect of Time of day, weather, and working/non-working days
+
+The below plot shows the effect of time, weather, and work/nonwork days on daily rental counts. The initial idea for this plot came from [this kaggle script post](https://www.kaggle.com/users/993/ben-hamner/bike-sharing-demand/bike-rentals-by-time-and-temperature) by Ben Hamner, which has been greatly expanded here. 
 
 
 ```r
@@ -239,8 +245,34 @@ print(gg)
 
 ![](BikeShareAnalysis_files/figure-html/demand.daily-1.png) 
 
+Features to note:
+
+* Sinusoidal shape of demand with respect to hour of the day.
+* Weather does not greatly effect the the shape of the demand curve with respect to time of day, just the magnitude and density. 
+* Weather does seem to effect the average temperature of the data.
+* Dependance on demand to atemp, with peak demand in the 80-100°F range. 
+* Distincly differing shape between a work and non-work day, with 
+* Peak demand occurs in the afternoon of a warm, nice-weather, work-day.
+
+### Principal component analysis (PCA)
+
+PCA Analysis here.
+
+## Model Development
+
+Using a staged model development approach which attempts to remove the effect of each variable in isolated steps. 
+
+### temperature model
+
+### Work vs. Nonwork day
+
+### Weather effect
+
+### Time of day (final model)
+
 ## Future Work
 
 Items remaining for future work:
 
 * Include measured tempurature, wind, and humidity in the analysis. 
+* Determine if data set is applicable to the DC weather patterns. Data appears to be from much more temperate climate which could greatly effect weather-based behavior. Theory: residents get accustomed to their "average" weather condition, adjusting outdoor activity accordingly. 
