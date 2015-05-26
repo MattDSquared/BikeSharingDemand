@@ -69,7 +69,7 @@ gg1 <- ggplot(train, aes(timeofday, count, color=9/5*atemp+32)) +
     theme(plot.title = element_text(size = rel(2))) +
     labs(title="Bike Rental Demand \nPer Time of Day and Weather") + 
     labs(x="Hour of Day") + 
-    labs(y="Bike Rentals Initiated (in 5 minute increments)") +
+    labs(y="Bike Rentals Initiated per hour") +
     scale_colour_gradientn("Temp (°F)", colours=c("#5e4fa2", "#3288bd", "#66c2a5", "#abdda4", "#e6f598", "#fee08b", "#fdae61", "#f46d43", "#d53e4f", "#9e0142"))
 windows()
 print(gg1)
@@ -97,7 +97,7 @@ print(gg3)
 # but still very distinct
 # TODO: anything more to interpret from this dendrogram? 
 
-## atemp vs. temperature, rentals
+## atemp vs. temperature, weather
 gg4 <- ggplot(train, aes(temp, atemp, color=humidity, size=windspeed)) +
     geom_point() +
     scale_colour_gradient(low="blue",high="red") + 
