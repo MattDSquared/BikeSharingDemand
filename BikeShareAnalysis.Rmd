@@ -26,7 +26,8 @@ library(ggplot2)
 library(ggdendro)
 library(lubridate)
 library(plyr); library(dplyr)
-source("myplclust.R")
+library(randomForest)
+library(scales)
 
 sessionInfo()
 
@@ -74,8 +75,15 @@ train <- mutate(train,
                 weather = factor(weather,levels=1:4, labels=weatherlabels),
                 dayofweek = factor(weekdays(datetime), levels=daysoftheweek),
                 timeofday = hour(datetime))
-#test <- mutate(test, ...)
-#   TODO: fill out test data later once have solid train dataset
+test <- mutate(test, 
+                datetime = ymd_hms(datetime),
+                season = factor(season, levels=1:4, labels=seasons),
+                holiday = as.logical(holiday),
+                workingday = factor(workingday, levels=c(1,0), 
+                                    labels=c("Workday","Holiday/Weekend")),
+                weather = factor(weather,levels=1:4, labels=weatherlabels),
+                dayofweek = factor(weekdays(datetime), levels=daysoftheweek),
+                timeofday = hour(datetime))
 
 ```
 
@@ -122,19 +130,70 @@ train <- mutate(train, atemp=ifelse((atemp < 15) & (temp > 24), temp, atemp))
 test <- mutate(test, atemp=ifelse((atemp < 15) & (temp > 24), temp, atemp))
 ```
 
-It appears wind and humidity are already packaged into the 'feels like' tempurature value. The following analysis neglects temp, wind, and humidity in favor of using atemp. This leaves the weather label, time (hour of the day, day of the week), and holiday label. 
+It appears wind and humidity are already packaged into the 'feels like' tempurature value. The key is to find out how much that matters. 
 
 ## Primary demand drivers
 
+### principal component analysis (PCA)
+
+A principal component analysis (PCA) on the data shows how variation in the input data can be explained by a same-sized set of orthogonal variables. 
+
+```{r pca}
+tr.inputs <- select(train, datetime:windspeed)
+train.svd <- svd(scale(sapply(tr.inputs, unclass)))
+
+gg <- ggplot() + 
+    geom_bar(aes(x=1:length(train.svd$d), y=train.svd$d^2/sum(train.svd$d^2)),
+             stat="identity",
+             fill="dodgerblue") + 
+    scale_x_discrete(limits=1:length(tr.inputs)) +
+    labs(title="Feature Variance") +
+    labs(x="Orthogonal variables") +
+    labs(y="Proportion of variance explained")
+print(gg)
+```
+
+The last eigenvalue (variable 9 above) appears to contribute a negligeable amount of information to the input data. The below plot shows the components of this eigenvalue are tempurature, 'feels like' temperature, and a little of wind and humidity. This is consistent with our earlier exploration. The low eigenvalue here means that at least one of these 4 variables can be completely neglected. 
+
+```{r pca.atemp, echo=FALSE}
+eigval <- 9
+gg <- ggplot() + 
+    geom_bar(aes(x=1:length(tr.inputs), y=train.svd$v[,eigval]),
+             stat="identity",
+             fill="dodgerblue") + 
+    scale_x_discrete(limits=names(tr.inputs)) +
+    labs(title=paste("Composition of eigenvalue",eigval)) +
+    labs(x="Feature") +
+    labs(y="Scaled Column Means")
+print(gg)
+```
+
+Finally, exploring the compostion of eigenvalue 1 shows that about `r round(train.svd$d[1]*100)`% of the data variation comes from datetime, season, temperature, and a little of windspeed. This means date, time, season, tempurature and to some extent wind are intertwined pieces of information, as one might expect. 
+
+```{r pca.season.temp, echo=FALSE}
+eigval <- 1
+gg <- ggplot() + 
+    geom_bar(aes(x=1:length(tr.inputs), y=train.svd$v[,eigval]),
+             stat="identity",
+             fill="dodgerblue") + 
+    scale_x_discrete(limits=names(tr.inputs)) +
+    labs(title=paste("Composition of eigenvalue",eigval)) +
+    labs(x="Feature") +
+    labs(y="Scaled Column Means")
+print(gg)
+```
+
+Due to the broad spread of orgogonal data across a variety of features, an optimal solution will likely include most of the provided data, with the exception of temp/atemp. These two variables provide very little additional information between each other. 
+
 ### Effect of Time of day, weather, and working/non-working days
 
-The below plot shows the effect of time, weather, and work/nonwork days on daily rental counts. The initial idea for this plot came from [this kaggle script post](https://www.kaggle.com/users/993/ben-hamner/bike-sharing-demand/bike-rentals-by-time-and-temperature) by Ben Hamner, which has been greatly expanded here. 
+The below plot shows the effect of time, tempurature, weather, and work/nonwork days on daily rental counts. The initial idea for this plot came from [this kaggle script post](https://www.kaggle.com/users/993/ben-hamner/bike-sharing-demand/bike-rentals-by-time-and-temperature) by Ben Hamner, which has been expanded here. 
 
 ```{r demand.daily, fig.width=8, fig.height=6}
 colors.tempurature <- c("#5e4fa2", "#3288bd", "#66c2a5", "#abdda4", "#e6f598",
                         "#fee08b", "#fdae61", "#f46d43", "#d53e4f", "#9e0142")
 
-gg <- ggplot(train, aes(timeofday, count, color=9/5*atemp+32)) +
+gg <- ggplot(train, aes(timeofday, count, color=9/5*temp+32)) +
     facet_grid(workingday ~ weather) +
     geom_point() +
     geom_smooth() +
@@ -156,25 +215,76 @@ Features to note:
 * Distincly differing shape between a work and non-work day, with 
 * Peak demand occurs in the afternoon of a warm, nice-weather, work-day.
 
-### Principal component analysis (PCA)
-
-PCA Analysis here.
-
 ## Model Development
 
-Using a staged model development approach which attempts to remove the effect of each variable in isolated steps. 
+A random forest model is a convenient method for predicting rental counts given a specified set of variables and is robust to irrelevant or overlapping features. This script is essentially a copy of Ben Hamner's submission for [What drives demand for DC bike rentals?](https://www.kaggle.com/benhamner/bike-sharing-demand/what-drives-demand-for-dc-bike-rentals). 
 
-### temperature model
+```{r random.forest}
+# features used is modified slightly
+train.features <- select(train, season, dayofweek, timeofday, workingday, 
+                         weather, temp, humidity, windspeed)
 
-### Work vs. Nonwork day
+# this is baller Hamner R code, no credit taken here.
+train.rf <- randomForest(train.features, train$count, ntree=300, importance=TRUE)
 
-### Weather effect
+imp <- importance(train.rf, type=1)
+featureImportance <- data.frame(Feature=row.names(imp), Importance=imp[,1])
 
-### Time of day (final model)
+ggplot(featureImportance, aes(x=reorder(Feature, Importance), y=Importance)) +
+     geom_bar(stat="identity", fill="#53cfff") +
+     coord_flip() + 
+     theme_light(base_size=16) +
+     xlab("") + 
+     ylab("Relative Importance") +
+     theme(plot.title   = element_text(size=18),
+           strip.text.x = element_blank(),
+           axis.text.x  = element_blank(),
+           axis.ticks.x = element_blank())
+```
+
+Ben also had a wonderful way to visualize the individual feature contributions using scaled partial plots of each feature and their effect on count. Again, not credit taken on my part. 
+
+```{r random.forest.results}
+partials <- data.frame()
+
+for (i in seq_along(names(train.features))) {
+  partial <- partialPlot(train.rf, sapply(train.features, unclass), 
+                         names(train.features)[i], 
+                         plot=FALSE)
+  xt <- rescale(partial$x)
+  partials <- rbind(partials, data.frame(x=partial$x, xt=xt, y=partial$y, 
+                                         feature=names(train.features)[i]))
+}
+
+ranges <- ddply(partials, "feature", function(d) {
+  r <- range(d$y)
+  data.frame(feature=d$feature[1], range=r[2]-r[1])
+})
+
+features_to_plot <- ranges[ranges$range>0.05*max(ranges$range),"feature"]
+
+ggplot(partials[partials$feature %in% features_to_plot,], 
+       aes(x=xt, y=y, color=feature)) +
+  geom_line(size=2) +
+  theme_light(base_size=16) +
+  xlab("Feature Range (Min to Max)") +
+  ylab("Hourly Bike Rentals") 
+```
+
+```{r export.prediction}
+# TODO: move select call to separate extract_features function
+prediction <- predict(train.rf, select(test, season, dayofweek, timeofday, workingday, weather, temp, humidity, windspeed))
+
+export.df <- data.frame(datetime=test$datetime,count=prediction)
+
+write.csv(export.df,file="data/Submission2.csv", quote=FALSE, row.names=FALSE)
+
+```
 
 ## Future Work
 
 Items remaining for future work:
 
-* Include measured tempurature, wind, and humidity in the analysis. 
+* Include wind and humidity in the data exploration. 
+* Explore alternative prediction techniques.
 * Determine if data set is applicable to the DC weather patterns. Data appears to be from much more temperate climate which could greatly effect weather-based behavior. Theory: residents get accustomed to their "average" weather condition, adjusting outdoor activity accordingly. 
