@@ -116,7 +116,7 @@ test <- mutate(test,
                 timeofday = hour(datetime))
 ```
 
-Data only shows a single heavy weather point. In the midst of several light weather points. For graphing purposes, replace with light weather. Implicit assumption: bike rentals during heavy weather will be negligeable. 
+The data only show a single heavy weather point in the midst of several light weather points. For graphing purposes, replace with light weather. Implicit assumption: bike rentals during heavy weather will be negligible. 
 
 
 ```r
@@ -172,7 +172,7 @@ The atemp variable in the data set is the "feels like" temperature based on weat
 ## atemp vs. temperature, weather
 gg <- ggplot(train, aes(temp, atemp, color=humidity, size=windspeed)) +
     geom_point() +
-    scale_colour_gradient(low="blue",high="red") + 
+    scale_colour_gradient(low="red",high="blue") + 
     labs(title="Effects on 'Feels Like' Tempurature") +
     labs(x="tempurature (°C)") +
     labs(y="'feels like' tempurature (°C)")
@@ -226,13 +226,13 @@ train <- mutate(train, atemp=ifelse((atemp < 15) & (temp > 24), temp, atemp))
 test <- mutate(test, atemp=ifelse((atemp < 15) & (temp > 24), temp, atemp))
 ```
 
-It appears wind and humidity are already packaged into the 'feels like' tempurature value. The key is to find out how much that matters. 
+It appears wind and humidity are already packaged into the 'feels like' temperature value. The key is to find out how much that matters. 
 
 ## Primary demand drivers
 
 ### principal component analysis (PCA)
 
-A principal component analysis (PCA) on the data shows how variation in the input data can be explained by a same-sized set of orthogonal variables. 
+A principal component analysis (PCA) on the data shows how variation in the input data can be explained by a same-sized set of orthogonal variables. In other words, it indicates where most of the information is contained in a data set. 
 
 
 ```r
@@ -252,7 +252,7 @@ print(gg)
 
 ![](BikeShareAnalysis_files/figure-html/pca-1.png) 
 
-The last eigenvalue (variable 9 above) appears to contribute a negligeable amount of information to the input data. The below plot shows the components of this eigenvalue are tempurature, 'feels like' temperature, and a little of wind and humidity. This is consistent with our earlier exploration. The low eigenvalue here means that at least one of these 4 variables can be completely neglected. 
+The last eigenvalue (variable 9 above) appears to contribute a negligible amount of information to the input data. The below plot shows the components of this eigenvalue are temperature, 'feels like' temperature, and a little of wind and humidity. This is consistent with our earlier exploration. The low eigenvalue here means that at least one of these 4 variables can be completely neglected. 
 
 
 ```
@@ -261,7 +261,7 @@ The last eigenvalue (variable 9 above) appears to contribute a negligeable amoun
 
 ![](BikeShareAnalysis_files/figure-html/pca.atemp-1.png) 
 
-Finally, exploring the compostion of eigenvalue 1 shows that about 1.5726\times 10^{4}% of the data variation comes from datetime, season, temperature, and a little of windspeed. This means date, time, season, tempurature and to some extent wind are intertwined pieces of information, as one might expect. 
+Finally, exploring the composition of eigenvalue 1 shows that about 1.5726\times 10^{4}% of the data variation comes from datetime, season, temperature, and a little of windspeed. This means date, time, season, temperature and to some extent wind are intertwined pieces of information, as one might expect. 
 
 
 ```
@@ -270,11 +270,11 @@ Finally, exploring the compostion of eigenvalue 1 shows that about 1.5726\times 
 
 ![](BikeShareAnalysis_files/figure-html/pca.season.temp-1.png) 
 
-Due to the broad spread of orgogonal data across a variety of features, an optimal solution will likely include most of the provided data, with the exception of temp/atemp. These two variables provide very little additional information between each other. 
+Due to the broad spread of orthogonal data across a variety of features, an optimal solution will likely include most of the provided data, with the exception of temp/atemp. These two variables provide very little additional information between each other. 
 
 ### Effect of Time of day, weather, and working/non-working days
 
-The below plot shows the effect of time, tempurature, weather, and work/nonwork days on daily rental counts. The initial idea for this plot came from [this kaggle script post](https://www.kaggle.com/users/993/ben-hamner/bike-sharing-demand/bike-rentals-by-time-and-temperature) by Ben Hamner, which has been expanded here. 
+The below plot shows the effect of time, temperature, weather, and work/nonwork days on daily rental counts. The initial idea for this plot came from [this kaggle script post](https://www.kaggle.com/users/993/ben-hamner/bike-sharing-demand/bike-rentals-by-time-and-temperature) by Ben Hamner, which has been expanded here. 
 
 
 ```r
@@ -299,10 +299,10 @@ print(gg)
 Features to note:
 
 * Sinusoidal shape of demand with respect to hour of the day.
-* Weather does not greatly effect the the shape of the demand curve with respect to time of day, just the magnitude and density. 
+* Weather does not greatly affect the shape of the demand curve with respect to time of day, just the magnitude and density. 
 * Weather does seem to effect the average temperature of the data.
-* Dependance on demand to atemp, with peak demand in the 80-100°F range. 
-* Distincly differing shape between a work and non-work day, with 
+* Dependence on demand to atemp, with peak demand in the 80-100°F range. 
+* Distinctly differing shape between a work and non-work day, with 
 * Peak demand occurs in the afternoon of a warm, nice-weather, work-day.
 
 ## Model Development
@@ -316,7 +316,7 @@ train.features <- select(train, season, dayofweek, timeofday, workingday,
                          weather, temp, humidity, windspeed)
 
 # this is baller Hamner R code, no credit taken here.
-train.rf <- randomForest(train.features, train$count, ntree=300, importance=TRUE)
+train.rf <- randomForest(train.features, train$count, ntree=100, importance=TRUE)
 
 imp <- importance(train.rf, type=1)
 featureImportance <- data.frame(Feature=row.names(imp), Importance=imp[,1])
@@ -383,4 +383,4 @@ Items remaining for future work:
 
 * Include wind and humidity in the data exploration. 
 * Explore alternative prediction techniques.
-* Determine if data set is applicable to the DC weather patterns. Data appears to be from much more temperate climate which could greatly effect weather-based behavior. Theory: residents get accustomed to their "average" weather condition, adjusting outdoor activity accordingly. 
+* Determine if data set is applicable to the DC weather patterns. Data appears to be from much more temperate climate which could greatly affect weather-based behavior. Theory: residents get accustomed to their "average" weather condition, adjusting outdoor activity accordingly. 
