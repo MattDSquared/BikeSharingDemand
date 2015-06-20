@@ -1,10 +1,12 @@
 ---
-title: "Bike Sharing Program: Rental Demand Prediction from Weather"
+title: 'Bike Sharing Program: Rental Demand Prediction from Weather'
 author: "MattDSquared (Matthew D. Davis)"
 date: "Monday, May 25, 2015"
-output: 
-    html_document:
-        keep_md: true
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+  word_document: default
 ---
 
 _From the competition host, Kaggle.com_
@@ -168,7 +170,7 @@ gg <- ggplot() +
 print(gg)
 ```
 
-Finally, exploring the composition of eigenvalue 1 shows that about `r round(train.svd$d[1]*100)`% of the data variation comes from datetime, season, temperature, and a little of windspeed. This means date, time, season, temperature and to some extent wind are intertwined pieces of information, as one might expect. 
+Finally, exploring the composition of eigenvalue 1 shows that about `r round(train.svd$d[1]^2/sum(train.svd$d^2)*100)`% of the data variation comes from datetime, season, temperature, and a little of windspeed. This means date, time, season, temperature and to some extent wind are intertwined pieces of information, as one might expect. 
 
 ```{r pca.season.temp, echo=FALSE}
 eigval <- 1

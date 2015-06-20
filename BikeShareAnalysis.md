@@ -261,7 +261,7 @@ The last eigenvalue (variable 9 above) appears to contribute a negligible amount
 
 ![](BikeShareAnalysis_files/figure-html/pca.atemp-1.png) 
 
-Finally, exploring the composition of eigenvalue 1 shows that about 1.5726\times 10^{4}% of the data variation comes from datetime, season, temperature, and a little of windspeed. This means date, time, season, temperature and to some extent wind are intertwined pieces of information, as one might expect. 
+Finally, exploring the composition of eigenvalue 1 shows that about 25% of the data variation comes from datetime, season, temperature, and a little of windspeed. This means date, time, season, temperature and to some extent wind are intertwined pieces of information, as one might expect. 
 
 
 ```
